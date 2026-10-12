@@ -1,0 +1,271 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thinking of You ❤️</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #020515;
+    color: white;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+    width: 100%;
+    height: 100dvh;
+}
+
+canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.content {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    pointer-events: none;
+}
+
+h1 {
+    position: absolute;
+    top: 17%;
+    font-size: clamp(24px, 6vw, 38px);
+    color: #dce8ff;
+    text-shadow: 0 0 15px #448aff;
+    letter-spacing: 2px;
+}
+
+#message {
+    position: absolute;
+    top: 52%;
+    font-size: 17px;
+    color: #cbdcff;
+    text-shadow: 0 0 10px #438cff;
+    padding: 10px;
+}
+
+.hint {
+    position: absolute;
+    bottom: 7%;
+    font-family: cursive;
+    font-size: 17px;
+    color: #b9c9ff;
+    animation: glow 2s infinite alternate;
+}
+
+@keyframes glow {
+    from { opacity: 0.5; }
+    to {
+        opacity: 1;
+        text-shadow: 0 0 15px #589cff;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div class="content">
+    <h1>Thinking of You</h1>
+
+    <div id="message">You make my world beautiful ❤️</div>
+
+    <div class="hint">Click anywhere to send hearts</div>
+</div>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const message = document.getElementById("message");
+
+let width, height;
+let stars = [];
+let particles = [];
+let bursts = [];
+
+const messages = [
+    "You make my world beautiful ❤️",
+    "Even the stars remind me of you ✨",
+    "You're always in my thoughts 💙",
+    "If I could wish for one thing, it would be you.",
+    "No matter how far, you're close to my heart 💖",
+    "Thinking of you, always. ❤️"
+];
+
+function resize() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+
+    stars = [];
+
+    for (let i = 0; i < 150; i++) {
+        stars.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            r: Math.random() * 2 + 0.4,
+            a: Math.random(),
+            speed: Math.random() * 0.025 + 0.005
+        });
+    }
+
+    createHeart();
+}
+
+function heartPoint(t) {
+    return {
+        x: 16 * Math.pow(Math.sin(t), 3),
+        y: -(13 * Math.cos(t)
+          - 5 * Math.cos(2 * t)
+          - 2 * Math.cos(3 * t)
+          - Math.cos(4 * t))
+    };
+}
+
+function createHeart() {
+    particles = [];
+
+    const scale = Math.min(width, height) * 0.012;
+
+    for (let i = 0; i < 220; i++) {
+        const t = Math.random() * Math.PI * 2;
+        const p = heartPoint(t);
+        const fill = Math.sqrt(Math.random());
+
+        particles.push({
+            x: width / 2 + p.x * scale * fill,
+            y: height / 2 + p.y * scale * fill,
+            baseX: p.x * scale * fill,
+            baseY: p.y * scale * fill,
+            size: Math.random() * 2 + 0.5,
+            phase: Math.random() * Math.PI * 2,
+            color: Math.random() > 0.5
+                ? "#4b8bff" : "#d8e8ff"
+        });
+    }
+}
+
+let start = performance.now();
+
+function animate(now) {
+    requestAnimationFrame(animate);
+
+    ctx.clearRect(0, 0, width, height);
+
+    // Galaxy background
+    const bg = ctx.createRadialGradient(
+        width / 2, height / 2, 0,
+        width / 2, height / 2, Math.max(width, height)
+    );
+
+    bg.addColorStop(0, "#081638");
+    bg.addColorStop(0.55, "#03091d");
+    bg.addColorStop(1, "#01020b");
+
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, width, height);
+
+    // Twinkling stars
+    stars.forEach(s => {
+        s.a += s.speed;
+
+        const alpha = 0.25 + (Math.sin(s.a) + 1) * 0.35;
+
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(100,165,255,${alpha})`;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = "#378aff";
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    });
+
+    // Pulsing heart
+    const time = now / 1000;
+    const pulse = 1 + Math.sin(time * 2.5) * 0.045;
+
+    particles.forEach(p => {
+        const drift = Math.sin(time * 2 + p.phase) * 2;
+
+        const x = width / 2 + p.baseX * pulse + drift;
+        const y = height / 2 + p.baseY * pulse;
+
+        ctx.beginPath();
+        ctx.arc(x, y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = p.color;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    });
+
+    // Heart burst particles
+    bursts = bursts.filter(p => p.life > 0);
+
+    bursts.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= 0.985;
+        p.vy *= 0.985;
+        p.life -= 0.012;
+
+        ctx.globalAlpha = Math.max(0, p.life);
+        ctx.font = `${p.size}px Arial`;
+        ctx.fillStyle = p.color;
+        ctx.fillText("♥", p.x, p.y);
+    });
+
+    ctx.globalAlpha = 1;
+}
+
+function burst(x, y) {
+    for (let i = 0; i < 35; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 4 + 1;
+
+        bursts.push({
+            x, y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 1,
+            size: Math.random() * 15 + 9,
+            color: Math.random() > 0.5
+                ? "#65a5ff" : "#ffffff"
+        });
+    }
+}
+
+let messageIndex = 0;
+
+canvas.addEventListener("pointerdown", function(e) {
+    burst(e.clientX, e.clientY);
+
+    messageIndex = (messageIndex + 1) % messages.length;
+    message.textContent = messages[messageIndex];
+});
+
+window.addEventListener("resize", resize);
+
+resize();
+requestAnimationFrame(animate);
+</script>
+
+</body>
+</html>
